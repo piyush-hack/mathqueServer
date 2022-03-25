@@ -30,7 +30,7 @@ io.on('connection', (socket) => {
     socket.on("giveAllRooms", () => {
         socket.emit('getAllRooms', { msg: usersByRooms })
     })
-    
+
     socket.on('joinRoom', async (data) => {
         await socket.join(data.room);
         console.log(usersByRooms[data.room])
@@ -57,6 +57,6 @@ io.on('connection', (socket) => {
 });
 
 
-server.listen(3000, () => {
-    console.log('listening on *:3000');
+server.listen(port, () => {
+    console.log(`listening on *:${port}`);
 });
