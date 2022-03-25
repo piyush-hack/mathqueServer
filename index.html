@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://piyush-hack.github.io/cdn/css/picss.css" rel="stylesheet" />
+
+</head>
+
+<body>
+
+    <button class="btn btn-primary" onclick="searchUser()">Start</button>
+    <input type="text" id="roomName">
+    <div id="joinedRoomName">Yet To Join</div>
+    <div id="qus"></div>
+
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io.connect('http://localhost:3000');
+        socket.on('news', function (data) {
+            console.log(data);
+            // document.write(data.msg)
+        });
+
+        let joinStatus = false;
+        async function searchUser() {
+            socket.emit("giveAllRooms", { msg: "Send All Rooms" })
+            // socket.join("queRoom");
+        }
+
+        socket.on('getAllRooms', async (data) => {
+            let usersByRoom = data.msg
+            console.log(usersByRoom, Object.keys(usersByRoom))
+
+            if (!joinStatus) {
+                for (let i = 0; i < Object.keys(usersByRoom).length; i++) {
+                    console.log("first")
+
+                    const roomName = Object.keys(usersByRoom)[i];
+
+                    console.log("roomName", usersByRoom[roomName])
+                    if (usersByRoom[roomName] == 1) {
+                        socket.emit("joinRoom", { room: roomName, ques: true })
+                        joinStatus = true;
+                        console.log("Joined Room ", roomName)
+                        document.getElementById("joinedRoomName").innerHTML = roomName;
+                        roomJoined(roomName)
+                        return false;
+                    }
+
+                    if ((Object.keys(usersByRoom).length - 1) == i && joinStatus == false && usersByRoom[roomName]
+                        != 1) {
+                        console.log(Object.keys(usersByRoom).length - 1, i, roomName, usersByRoom[roomName])
+
+                        socket.emit("joinRoom", { room: document.getElementById("roomName").value })
+                        console.log("Joined New Room ", document.getElementById("roomName").value)
+                        document.getElementById("joinedRoomName").innerHTML = document.getElementById("roomName").value;
+                        roomJoined(document.getElementById("roomName").value)
+                    }
+                }
+            }
+        })
+
+        function roomJoined(roomName) {
+            if (joinStatus) {
+                socket.on(roomName, (data) => {
+                    console.log(data)
+                });
+            }
+        }
+
+        socket.on("getQues", (data) => {
+            alert("Both Users Are Here! Start")
+            console.log(data)
+            document.getElementById("qus").innerHTML = data.ques;
+        });
+
+
+
+
+    </script>
+</body>
+
+</html>
