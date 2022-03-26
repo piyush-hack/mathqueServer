@@ -7,16 +7,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <link href="https://piyush-hack.github.io/cdn/css/picss.css" rel="stylesheet" />
+    <style>
+        #progressBar {
+            position: absolute;
+            top: 152px;
+            right: 66px;
+            width: 300px;
+        }
+    </style>
 
 </head>
 
 <body>
 
-    <button class="btn btn-primary" onclick="searchUser()">Start</button>
-    <input type="text" id="roomName">
-    <div id="joinedRoomName">Yet To Join</div>
-    <div id="qus"></div>
+    <progress value="0" max="60" id="progressBar"></progress>
+    <div class="container my-3">
+        <div class="form-outline mb-4">
+            <input type="text" id="roomName" class="form-control" />
+            <label class="form-label" for="roomName">Enter Unique Room Name</label>
+        </div>
+        <button class="btn btn-primary" onclick="searchUser()">Start</button>
 
+        <div id="joinedRoomName" class="my-3">
+            <h3>Yet To Join</h3>
+        </div>
+        <div id="qus"></div>
+        <div id="reports"></div>
+    </div>
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mdb-ui-kit/3.11.0/mdb.min.js"></script>
     <!-- <script src="http://localhost:5000/socket.io/socket.io.js"></script> -->
     <script src="https://mathquebackend.herokuapp.com/socket.io/socket.io.js"></script>
     <script>
@@ -28,8 +47,22 @@
         });
 
         let joinStatus = false;
+        let correctAns = {};
+        let report = { userName: document.getElementById("roomName").value };
+        let questionNo = 0;
         async function searchUser() {
-            socket.emit("giveAllRooms", { msg: "Send All Rooms" })
+            if (!document.getElementById("roomName").value || (document.getElementById("roomName").value).trim() == "") {
+                alert("Enter A Unique Id To Continue!!")
+                return;
+            }
+
+            report.userName = document.getElementById("roomName").value;
+            if (!joinStatus) {
+                console.log("first")
+                socket.emit("giveAllRooms", { msg: "Send All Rooms" })
+            } else {
+                alert("You Are Already In The Room")
+            }
             // socket.join("queRoom");
         }
 
@@ -46,18 +79,17 @@
                     const roomName = Object.keys(usersByRoom)[i];
 
                     console.log("roomName", usersByRoom[roomName])
-                    if (usersByRoom[roomName] == 1) {
-                        socket.emit("joinRoom", { room: roomName, ques: true })
-                        joinStatus = true;
+                    if (usersByRoom[roomName] == 1 && joinStatus == false) {
+                        socket.emit("joinRoom", { room: roomName, ques: true, uniqueKey: document.getElementById("roomName").value })
                         console.log("Joined Room ", roomName)
                         document.getElementById("joinedRoomName").innerHTML = roomName;
                         break;
                     }
 
-                    if ( (Object.keys(usersByRoom).length - 1) == i && joinStatus == false && usersByRoom[roomName] != 1) {
+                    if ((Object.keys(usersByRoom).length - 1) == i && joinStatus == false && usersByRoom[roomName] != 1) {
                         // console.log(Object.keys(usersByRoom).length - 1, i, roomName, usersByRoom[roomName])
 
-                        socket.emit("joinRoom", { room: document.getElementById("roomName").value })
+                        socket.emit("joinRoom", { room: document.getElementById("roomName").value, newRoom: true, uniqueKey: document.getElementById("roomName").value })
                         console.log("Joined New Room ", document.getElementById("roomName").value)
                         document.getElementById("joinedRoomName").innerHTML = document.getElementById("roomName").value;
                     }
@@ -65,14 +97,123 @@
             }
         })
 
+        socket.on("roomJoined" , function(data){
+            joinStatus = true;
 
-        socket.on("getQues", function (data){
-            alert("Both Users Are Here! Start")
+        })
+
+
+        socket.on("getQues", function (data) {
+
+            if (data.userJoined) {
+                start();
+                alert("Both Users Are Here! Start")
+            }
+
+            // if (data.userAns) {
+            //     alert(data.user + " User Answered Correctly. New Question Is Given !")
+            // }
+
             console.log(data)
-            document.getElementById("qus").innerHTML = data.ques;
+            let allQuesDiv = document.querySelectorAll(".quesdiv").length
+            console.log("allQuesDiv", allQuesDiv)
+            document.getElementById("qus").innerHTML +=
+                `<div style="display:${allQuesDiv < 1 ? "block" : "none"}" id="quesdivno${data.sno}" class="quesdiv"  >
+                <br><br>
+                <p>${data.ques}</p>
+                <input type="number" id="ans${data.sno}" class="form-control" placeholder="Enter Answer" />
+                <br>
+                <button type="button" class="btn btn-primary" id="btn${data.sno}" onclick="submitAns(this)">Submit</button>
+                <br><br>
+            </div>`;
+            correctAns[data.sno] =  data.ans;
         });
 
-        
+        function submitAns(curr) {
+            let status = false;
+            let rans = correctAns[(curr.id).slice(3, )]
+            if ((curr.parentNode.getElementsByTagName('input')[0].value == rans)) {
+                status = true;
+            }
+            // console.log(curr.parentNode.getElementsByTagName('p')[0].innerHTML)
+            report[questionNo] = {
+                ques: curr.parentNode.getElementsByTagName('p')[0].innerHTML,
+                ans: {
+                    quesAns: rans,
+                    yourAns: curr.parentNode.getElementsByTagName('input')[0].value,
+                    status: status
+                }
+            }
+            questionNo++;
+
+            socket.emit("submitAns", {
+                msg: "Submit Ans And Send New One",
+                user: document.getElementById("roomName").value,
+                ans: (parseInt(curr.parentNode.getElementsByTagName('input')[0].value) == rans)
+            })
+
+            if (curr.parentNode.nextSibling) {
+                curr.parentNode.nextSibling.style.display = "block";
+            }
+            curr.parentNode.remove();
+
+        }
+
+
+
+        socket.on("userLeft", function (data) {
+            console.log(data.msg)
+            socket.emit("leaveRoom", { msg: "Leave This Room" })
+            joinStatus = false;
+            document.getElementById("qus").innerHTML = data.msg;
+        })
+
+
+        socket.on("error", function (data) {
+            alert(data.msg)
+            if (data.type == "noRoomJoin") {
+                console.log("Didn't Join New Room")
+                alert(data.msg)
+            }
+
+            if (data.type == "alreadyInRoom") {
+                console.log("You are already In The Room")
+                alert(data.msg)
+
+            }
+        })
+
+
+        /////////////////////Timer//////////////////////
+
+        function start() {
+            console.log("started")
+            var timeleft = 60;
+            var downloadTimer = setInterval(function () {
+                if (timeleft <= 0) {
+                    stop();
+                    clearInterval(downloadTimer);
+                }
+                document.getElementById("progressBar").value = 60 - timeleft;
+                timeleft -= 1;
+            }, 1000);
+        }
+
+        function stop() {
+            alert("Times Up!");
+            document.querySelector('#qus').innerHTML = "";
+            socket.emit("report", { userReport: report })
+        }
+
+        socket.on("showReports", function (data) {
+
+            document.querySelector('#reports').innerHTML += "<hr>" + JSON.stringify(data.userReport, null, 6)
+                .replace(/\n( *)/g, function (match, p1) {
+                    return '<br>' + '&nbsp;'.repeat(p1.length);
+                });
+                report={}
+        })
+
 
 
 
