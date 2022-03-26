@@ -33,13 +33,15 @@
             // socket.join("queRoom");
         }
 
-        socket.on('getAllRooms', async (data) => {
+        socket.on('getAllRooms', function (data) {
             let usersByRoom = data.msg
             console.log(usersByRoom, Object.keys(usersByRoom))
 
             if (!joinStatus) {
                 for (let i = 0; i < Object.keys(usersByRoom).length; i++) {
                     console.log("first")
+
+                    // {start : 7 , xyz : 1}
 
                     const roomName = Object.keys(usersByRoom)[i];
 
@@ -49,7 +51,6 @@
                         joinStatus = true;
                         console.log("Joined Room ", roomName)
                         document.getElementById("joinedRoomName").innerHTML = roomName;
-                        roomJoined(roomName)
                         return false;
                     }
 
@@ -60,19 +61,11 @@
                         socket.emit("joinRoom", { room: document.getElementById("roomName").value })
                         console.log("Joined New Room ", document.getElementById("roomName").value)
                         document.getElementById("joinedRoomName").innerHTML = document.getElementById("roomName").value;
-                        roomJoined(document.getElementById("roomName").value)
                     }
                 }
             }
         })
 
-        function roomJoined(roomName) {
-            if (joinStatus) {
-                socket.on(roomName, (data) => {
-                    console.log(data)
-                });
-            }
-        }
 
         socket.on("getQues", (data) => {
             alert("Both Users Are Here! Start")
