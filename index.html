@@ -54,9 +54,8 @@
                         break;
                     }
 
-                    if ((Object.keys(usersByRoom).length - 1) == i && joinStatus == false && usersByRoom[roomName]
-                        != 1) {
-                        console.log(Object.keys(usersByRoom).length - 1, i, roomName, usersByRoom[roomName])
+                    if ( (Object.keys(usersByRoom).length - 1) == i && joinStatus == false && usersByRoom[roomName] != 1) {
+                        // console.log(Object.keys(usersByRoom).length - 1, i, roomName, usersByRoom[roomName])
 
                         socket.emit("joinRoom", { room: document.getElementById("roomName").value })
                         console.log("Joined New Room ", document.getElementById("roomName").value)
@@ -67,7 +66,7 @@
         })
 
 
-        socket.on("getQues", (data) => {
+        socket.on("getQues", function (data){
             alert("Both Users Are Here! Start")
             console.log(data)
             document.getElementById("qus").innerHTML = data.ques;
