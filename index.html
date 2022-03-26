@@ -9,10 +9,17 @@
     <link href="https://piyush-hack.github.io/cdn/css/picss.css" rel="stylesheet" />
     <style>
         #progressBar {
-            position: absolute;
-            top: 152px;
+            position: fixed;
+            top: 26px;
             right: 66px;
             width: 300px;
+        }
+
+        img {
+            width: 306px;
+            margin: auto;
+            z-index: 1;
+
         }
     </style>
 
@@ -20,13 +27,14 @@
 
 <body>
 
+    <br><br>
     <progress value="0" max="60" id="progressBar"></progress>
     <div class="container my-3">
         <div class="form-outline mb-4">
             <input type="text" id="roomName" class="form-control" />
             <label class="form-label" for="roomName">Enter Unique Room Name</label>
         </div>
-        <button class="btn btn-primary" onclick="searchUser()">Start</button>
+        <button class="btn btn-primary" id="start" onclick="searchUser()">Start</button>
 
         <div id="joinedRoomName" class="my-3">
             <h3>Yet To Join</h3>
@@ -55,7 +63,7 @@
                 alert("Enter A Unique Id To Continue!!")
                 return;
             }
-
+            report = {};
             report.userName = document.getElementById("roomName").value;
             if (!joinStatus) {
                 console.log("first")
@@ -82,7 +90,7 @@
                     if (usersByRoom[roomName] == 1 && joinStatus == false) {
                         socket.emit("joinRoom", { room: roomName, ques: true, uniqueKey: document.getElementById("roomName").value })
                         console.log("Joined Room ", roomName)
-                        document.getElementById("joinedRoomName").innerHTML = roomName;
+                        // document.getElementById("joinedRoomName").innerHTML = roomName;
                         break;
                     }
 
@@ -91,14 +99,19 @@
 
                         socket.emit("joinRoom", { room: document.getElementById("roomName").value, newRoom: true, uniqueKey: document.getElementById("roomName").value })
                         console.log("Joined New Room ", document.getElementById("roomName").value)
-                        document.getElementById("joinedRoomName").innerHTML = document.getElementById("roomName").value;
+                        // document.getElementById("joinedRoomName").innerHTML = document.getElementById("roomName").value;
                     }
                 }
             }
         })
 
-        socket.on("roomJoined" , function(data){
+        socket.on("roomJoined", function (data) {
             joinStatus = true;
+            if(data.newRoom){
+                document.getElementById("joinedRoomName").innerHTML = `<img src="https://miro.medium.com/max/1400/1*CsJ05WEGfunYMLGfsT2sXA.gif" >`;
+            }else{
+                document.getElementById("joinedRoomName").innerHTML = `<br><h3>Joined !</h3>`;
+            }
 
         })
 
@@ -126,12 +139,12 @@
                 <button type="button" class="btn btn-primary" id="btn${data.sno}" onclick="submitAns(this)">Submit</button>
                 <br><br>
             </div>`;
-            correctAns[data.sno] =  data.ans;
+            correctAns[data.sno] = data.ans;
         });
 
         function submitAns(curr) {
             let status = false;
-            let rans = correctAns[(curr.id).slice(3, )]
+            let rans = correctAns[(curr.id).slice(3,)]
             if ((curr.parentNode.getElementsByTagName('input')[0].value == rans)) {
                 status = true;
             }
@@ -149,7 +162,7 @@
             socket.emit("submitAns", {
                 msg: "Submit Ans And Send New One",
                 user: document.getElementById("roomName").value,
-                ans: (parseInt(curr.parentNode.getElementsByTagName('input')[0].value) == rans)
+                ans: ((curr.parentNode.getElementsByTagName('input')[0].value) == rans)
             })
 
             if (curr.parentNode.nextSibling) {
@@ -187,6 +200,8 @@
         /////////////////////Timer//////////////////////
 
         function start() {
+
+            document.getElementById("start").setAttribute("disabled" , true)
             console.log("started")
             var timeleft = 60;
             var downloadTimer = setInterval(function () {
@@ -211,7 +226,6 @@
                 .replace(/\n( *)/g, function (match, p1) {
                     return '<br>' + '&nbsp;'.repeat(p1.length);
                 });
-                report={}
         })
 
 

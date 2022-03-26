@@ -1,4 +1,6 @@
 const express = require('express');
+const { evaluate } = require('mathjs')
+
 var cors = require('cors')
 const app = express()
 const port = process.env.PORT || 5000;
@@ -44,19 +46,25 @@ io.on('connection', (socket) => {
         }
         await socket.join(data.room);
         console.log(usersByRooms[data.room])
+
         usersByRooms[data.room] = usersByRooms[data.room] != undefined ? ++usersByRooms[data.room] : 1;
+        if (usersByRooms[data.room] > 1) {
+            io.in(data.room).emit("roomJoined", { joined: true, newRoom: false })
+        } else {
+            io.in(data.room).emit("roomJoined", { joined: true, newRoom: true })
+        }
         console.log(usersByRooms, usersByRooms[data.room])
-        socket.emit("roomJoined", { joined: true })
         if (data.ques) {
-            var a = Math.floor(Math.random() * 10) + 1;
-            var b = Math.floor(Math.random() * 10) + 1;
-            var op = ["*", "+", "/", "-"][Math.floor(Math.random() * 4)];
+            // var a = Math.floor(Math.random() * 10) + 1;
+            // var b = Math.floor(Math.random() * 10) + 1;
+            // var op = ["*", "+", "/", "-"][Math.floor(Math.random() * 4)];
+            let problem = genProblem(3 , 10);
+
             // prompt("How much is " + a + " " + op + " " + b + "?") == eval(a + op + b);
             // socket.emit("getQues", { ques: "How much is " + a + " " + op + " " + b + "?", ans: eval(a + op + b) });
             io.in(data.room).emit("getQues",
                 {
-                    ques: "How much is " + a + " " + op + " " + b + "?",
-                    ans: eval(a + op + b),
+                    ...problem,
                     sno: quesNo,
                     userJoined: true,
                 });
@@ -68,9 +76,10 @@ io.on('connection', (socket) => {
     socket.on("submitAns", async (data) => {
 
         console.log(data)
-        var a = Math.floor(Math.random() * 10) + 1;
-        var b = Math.floor(Math.random() * 10) + 1;
-        var op = ["*", "+", "/", "-"][Math.floor(Math.random() * 4)];
+        // var a = Math.floor(Math.random() * 10) + 1;
+        // var b = Math.floor(Math.random() * 10) + 1;
+        // var op = ["*", "+", "/", "-"][Math.floor(Math.random() * 4)];
+        let problem = genProblem(3 , 10);
         // prompt("How much is " + a + " " + op + " " + b + "?") == eval(a + op + b);
         // socket.emit("getQues", { ques: "How much is " + a + " " + op + " " + b + "?", ans: eval(a + op + b) });
         for (const x of socket.rooms.values()) {
@@ -78,8 +87,9 @@ io.on('connection', (socket) => {
                 // io.in(x).emit("userLeft", { msg: "Another User Has Left" });
                 io.in(x).emit("getQues",
                     {
-                        ques: "How much is " + a + " " + op + " " + b + "?",
-                        ans: eval(a + op + b),
+                        // ques: "How much is " + a + " " + op + " " + b + "?",
+                        // ans: eval(a + op + b),
+                        ...problem,
                         user: data.user,
                         userAns: data.ans,
                         sno: quesNo,
@@ -135,6 +145,45 @@ io.on('connection', (socket) => {
         console.log('user disconnected');
     });
 });
+
+function genProblem(level , upto) {
+    var TreeNode = function (left, right, operator) {
+        this.left = left;
+        this.right = right;
+        this.operator = operator;
+
+        this.toString = function () {
+            return '(' + left + ' ' + operator + ' ' + right + ')';
+        }
+    }
+
+    function randomNumberRange(min, max) {
+        return Math.floor(Math.random() * (max - min) + min);
+    }
+
+    var x = ['/', '*', '-', '+'];
+
+    function buildTree(numNodes) {
+        if (numNodes === 1)
+            return randomNumberRange(1, upto);
+
+        var numLeft = Math.floor(numNodes / 2);
+        var leftSubTree = buildTree(numLeft);
+        var numRight = Math.ceil(numNodes / 2);
+        var rightSubTree = buildTree(numRight);
+
+        var m = randomNumberRange(0, x.length);
+        var str = x[m];
+        return new TreeNode(leftSubTree, rightSubTree, str);
+    }
+
+    var n = level;
+    var probStatment = buildTree(n).toString()
+    var problem;
+
+    problem = { ques: "How much is " + probStatment + " ?", ans: Math.round(evaluate(probStatment) * 100) / 100 };
+    return problem;
+}
 
 
 server.listen(port, () => {
