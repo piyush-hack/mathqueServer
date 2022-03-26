@@ -51,7 +51,7 @@
                         joinStatus = true;
                         console.log("Joined Room ", roomName)
                         document.getElementById("joinedRoomName").innerHTML = roomName;
-                        return false;
+                        break;
                     }
 
                     if ((Object.keys(usersByRoom).length - 1) == i && joinStatus == false && usersByRoom[roomName]
