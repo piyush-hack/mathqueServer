@@ -21,6 +21,10 @@
             z-index: 1;
 
         }
+
+        /* .quesdiv {
+            display: none;
+        } */
     </style>
 
 </head>
@@ -66,7 +70,6 @@
             report = {};
             report.userName = document.getElementById("roomName").value;
             if (!joinStatus) {
-                console.log("first")
                 socket.emit("giveAllRooms", { msg: "Send All Rooms" })
             } else {
                 alert("You Are Already In The Room")
@@ -80,23 +83,17 @@
 
             if (!joinStatus) {
                 for (let i = 0; i < Object.keys(usersByRoom).length; i++) {
-                    console.log("first")
-
-                    // {start : 7 , xyz : 1}
-
                     const roomName = Object.keys(usersByRoom)[i];
 
-                    console.log("roomName", usersByRoom[roomName])
+                    // console.log("roomName", usersByRoom[roomName] , roomName)
                     if (usersByRoom[roomName] == 1 && joinStatus == false) {
                         socket.emit("joinRoom", { room: roomName, ques: true, uniqueKey: document.getElementById("roomName").value })
-                        console.log("Joined Room ", roomName)
+                        console.log("Trying to Join Room ", roomName)
                         // document.getElementById("joinedRoomName").innerHTML = roomName;
                         break;
                     }
 
                     if ((Object.keys(usersByRoom).length - 1) == i && joinStatus == false && usersByRoom[roomName] != 1) {
-                        // console.log(Object.keys(usersByRoom).length - 1, i, roomName, usersByRoom[roomName])
-
                         socket.emit("joinRoom", { room: document.getElementById("roomName").value, newRoom: true, uniqueKey: document.getElementById("roomName").value })
                         console.log("Joined New Room ", document.getElementById("roomName").value)
                         // document.getElementById("joinedRoomName").innerHTML = document.getElementById("roomName").value;
@@ -107,12 +104,11 @@
 
         socket.on("roomJoined", function (data) {
             joinStatus = true;
-            if(data.newRoom){
+            if (data.newRoom) {
                 document.getElementById("joinedRoomName").innerHTML = `<img src="https://miro.medium.com/max/1400/1*CsJ05WEGfunYMLGfsT2sXA.gif" >`;
-            }else{
+            } else {
                 document.getElementById("joinedRoomName").innerHTML = `<br><h3>Joined !</h3>`;
             }
-
         })
 
 
@@ -123,56 +119,47 @@
                 alert("Both Users Are Here! Start")
             }
 
-            // if (data.userAns) {
-            //     alert(data.user + " User Answered Correctly. New Question Is Given !")
-            // }
-
             console.log(data)
             let allQuesDiv = document.querySelectorAll(".quesdiv").length
             console.log("allQuesDiv", allQuesDiv)
-            document.getElementById("qus").innerHTML +=
-                `<div style="display:${allQuesDiv < 1 ? "block" : "none"}" id="quesdivno${data.sno}" class="quesdiv"  >
-                <br><br>
+            var coverDiv = document.createElement("div");
+            coverDiv.style.cssText = `display:${allQuesDiv < 1 ? "block" : "none"}`;
+            coverDiv.setAttribute("id", `quesdivno${data.sno}`)
+            coverDiv.setAttribute("class", `quesdiv`);
+            coverDiv.innerHTML =
+                `<br><br>
                 <p>${data.ques}</p>
                 <input type="number" id="ans${data.sno}" class="form-control" placeholder="Enter Answer" />
                 <br>
                 <button type="button" class="btn btn-primary" id="btn${data.sno}" onclick="submitAns(this)">Submit</button>
-                <br><br>
-            </div>`;
-            correctAns[data.sno] = data.ans;
+                <br><br>`;
+            document.getElementById("qus").appendChild(coverDiv)
+            // correctAns[data.sno] = data.ans;
         });
 
+        // {
+        //     ques : "dfdf"
+        // }
+
         function submitAns(curr) {
-            let status = false;
-            let rans = correctAns[(curr.id).slice(3,)]
-            if ((curr.parentNode.getElementsByTagName('input')[0].value == rans)) {
-                status = true;
-            }
-            // console.log(curr.parentNode.getElementsByTagName('p')[0].innerHTML)
-            report[questionNo] = {
-                ques: curr.parentNode.getElementsByTagName('p')[0].innerHTML,
-                ans: {
-                    quesAns: rans,
-                    yourAns: curr.parentNode.getElementsByTagName('input')[0].value,
-                    status: status
+            socket.emit("submitAns",
+                {
+                    user: document.getElementById("roomName").value,
+                    sno: (curr.id).slice(3,),
+                    userAns: parseFloat(curr.parentNode.getElementsByTagName('input')[0].value),
                 }
-            }
-            questionNo++;
 
-            socket.emit("submitAns", {
-                msg: "Submit Ans And Send New One",
-                user: document.getElementById("roomName").value,
-                ans: ((curr.parentNode.getElementsByTagName('input')[0].value) == rans)
-            })
+            )
 
-            if (curr.parentNode.nextSibling) {
-                curr.parentNode.nextSibling.style.display = "block";
-            }
-            curr.parentNode.remove();
+            setTimeout(() => {
+                if (curr.parentNode.nextSibling) {
+                    curr.parentNode.nextSibling.style.display = "block";
+                }
+                curr.parentNode.remove();
+            }, 100);
+
 
         }
-
-
 
         socket.on("userLeft", function (data) {
             console.log(data.msg)
@@ -201,8 +188,8 @@
 
         function start() {
 
-            document.getElementById("start").setAttribute("disabled" , true)
-            console.log("started")
+            document.getElementById("start").setAttribute("disabled", true)
+            console.log("start")
             var timeleft = 60;
             var downloadTimer = setInterval(function () {
                 if (timeleft <= 0) {
@@ -217,11 +204,11 @@
         function stop() {
             alert("Times Up!");
             document.querySelector('#qus').innerHTML = "";
-            socket.emit("report", { userReport: report })
+
+            socket.emit("report", { msg: "Send Report", uniqueKey: document.getElementById("roomName").value })
         }
 
         socket.on("showReports", function (data) {
-
             document.querySelector('#reports').innerHTML += "<hr>" + JSON.stringify(data.userReport, null, 6)
                 .replace(/\n( *)/g, function (match, p1) {
                     return '<br>' + '&nbsp;'.repeat(p1.length);

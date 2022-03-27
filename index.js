@@ -21,7 +21,9 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html');
 });
 
-let usersByRooms = { "start": 0 }
+let usersByRooms = { "start": { "users": 0 } }
+let usersRooms = { "start": 0 }
+
 let quesNo = 1;
 
 io.on('connection', (socket) => {
@@ -30,7 +32,7 @@ io.on('connection', (socket) => {
     // socket.emit('getAllRooms', {msg : usersByRooms})
 
     socket.on("giveAllRooms", () => {
-        socket.emit('getAllRooms', { msg: usersByRooms })
+        socket.emit('getAllRooms', { msg: usersRooms })
     })
 
     socket.on('joinRoom', async (data) => {
@@ -45,71 +47,87 @@ io.on('connection', (socket) => {
             return;
         }
         await socket.join(data.room);
-        console.log(usersByRooms[data.room])
+        // console.log(usersByRooms , usersRooms)
 
-        usersByRooms[data.room] = usersByRooms[data.room] != undefined ? ++usersByRooms[data.room] : 1;
-        if (usersByRooms[data.room] > 1) {
+        if (usersByRooms[data.room] == undefined) {
+            usersByRooms[data.room] = { users: 1 }
+            usersRooms[data.room] = 1
+            usersByRooms[data.room]["report" + data.uniqueKey] = { userId: data.uniqueKey };
+
+        } else {
+            if (usersByRooms[data.room].users) {
+                ++usersByRooms[data.room].users;
+                ++usersRooms[data.room];
+                usersByRooms[data.room]["report" + data.uniqueKey] = { userId: data.uniqueKey }
+            } else {
+                usersByRooms[data.room].users = 1;
+                usersRooms[data.room] = 1
+                usersByRooms[data.room]["report" + data.uniqueKey] = { userId: data.uniqueKey };
+            }
+        }
+        // usersByRooms[data.room].users = usersByRooms[data.room] != undefined ? ++usersByRooms[data.room] : 1;
+        if (usersByRooms[data.room].users > 1) {
             io.in(data.room).emit("roomJoined", { joined: true, newRoom: false })
         } else {
             io.in(data.room).emit("roomJoined", { joined: true, newRoom: true })
         }
-        console.log(usersByRooms, usersByRooms[data.room])
         if (data.ques) {
-            // var a = Math.floor(Math.random() * 10) + 1;
-            // var b = Math.floor(Math.random() * 10) + 1;
-            // var op = ["*", "+", "/", "-"][Math.floor(Math.random() * 4)];
-            let problem = genProblem(3 , 10);
 
-            // prompt("How much is " + a + " " + op + " " + b + "?") == eval(a + op + b);
-            // socket.emit("getQues", { ques: "How much is " + a + " " + op + " " + b + "?", ans: eval(a + op + b) });
+            let problem = genProblem(3, 10);
+            usersByRooms[data.room]["ques"] = {}
+            usersByRooms[data.room]["ques"][quesNo] = { ...problem }
             io.in(data.room).emit("getQues",
                 {
-                    ...problem,
+                    ques: problem.ques,
                     sno: quesNo,
                     userJoined: true,
                 });
-
             quesNo++;
         }
+        // console.log(JSON.stringify(usersByRooms) , usersRooms)
     });
 
     socket.on("submitAns", async (data) => {
 
-        console.log(data)
-        // var a = Math.floor(Math.random() * 10) + 1;
-        // var b = Math.floor(Math.random() * 10) + 1;
-        // var op = ["*", "+", "/", "-"][Math.floor(Math.random() * 4)];
-        let problem = genProblem(3 , 10);
-        // prompt("How much is " + a + " " + op + " " + b + "?") == eval(a + op + b);
-        // socket.emit("getQues", { ques: "How much is " + a + " " + op + " " + b + "?", ans: eval(a + op + b) });
+        // console.log(data)
+        let problem = genProblem(3, 10);
         for (const x of socket.rooms.values()) {
             if (usersByRooms[x]) {
-                // io.in(x).emit("userLeft", { msg: "Another User Has Left" });
+                // console.log(object)
+                let ansStatus = false;
+                if (usersByRooms[x]["ques"][data.sno]["ans"] === data.userAns) {
+                    ansStatus = true;
+                }
+                // console.log(usersByRooms[x]["ques"][data.sno]["ans"], data.userAns, ansStatus)
+
+                usersByRooms[x]["report" + data.user][data.sno] = {
+                    ...usersByRooms[x]["ques"][quesNo],
+                    ...usersByRooms[x]["ques"][data.sno],
+                    yourAns: data.userAns,
+                    status: ansStatus,
+
+                }
+                usersByRooms[x]["ques"][quesNo] = { ...problem }
                 io.in(x).emit("getQues",
                     {
-                        // ques: "How much is " + a + " " + op + " " + b + "?",
-                        // ans: eval(a + op + b),
-                        ...problem,
-                        user: data.user,
-                        userAns: data.ans,
+                        ques: problem.ques,
                         sno: quesNo,
                     });
                 quesNo++;
-
             }
         }
+        // console.log(JSON.stringify(usersByRooms))
     })
 
     socket.on("report", function (data) {
         for (const x of socket.rooms.values()) {
             if (usersByRooms[x]) {
+                // usersByRooms[x]["report" + data.uniqueKey]
                 io.in(x).emit("showReports",
                     {
-                        userReport: data.userReport,
+                        userReport: usersByRooms[x]["report" + data.uniqueKey],
                     });
             }
-
-            // console.log(usersByRooms, x)
         }
     })
 
@@ -117,26 +135,24 @@ io.on('connection', (socket) => {
         for (const x of socket.rooms.values()) {
             socket.leave(x);
             io.in(x).emit("userLeft", { msg: "Another User Has Left" });
-            // console.log(usersByRooms, x)
         }
     })
 
     socket.on('disconnecting', function () {
-        var self = this;
-        // console.log(self)
-        var rooms = this.rooms;
+
         // console.log("left user room ", rooms, "---", socket.rooms, " ------ ", socket.rooms.values())
         for (const x of socket.rooms.values()) {
             if (usersByRooms[x]) {
                 socket.leave(x);
-                delete usersByRooms[x];
+
                 io.in(x).emit("userLeft", { msg: "Another User Has Left" });
-                // usersByRooms[x] = usersByRooms[x] - 1;
-                // if (usersByRooms[x] == 0) {
-                //     delete usersByRooms[x];
-                //     console.log(usersByRooms)
-                // }
-                // console.log(usersByRooms, x)
+                io.in(x).emit("showReports",
+                    {
+                        userReport: usersByRooms[x],
+                    });
+
+                delete usersByRooms[x];
+                delete usersRooms[x];
             }
         }
     });
@@ -146,7 +162,7 @@ io.on('connection', (socket) => {
     });
 });
 
-function genProblem(level , upto) {
+function genProblem(level, upto) {
     var TreeNode = function (left, right, operator) {
         this.left = left;
         this.right = right;
