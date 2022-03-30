@@ -87,14 +87,21 @@
 
                     // console.log("roomName", usersByRoom[roomName] , roomName)
                     if (usersByRoom[roomName] == 1 && joinStatus == false) {
-                        socket.emit("joinRoom", { room: roomName, ques: true, uniqueKey: document.getElementById("roomName").value })
+                        socket.emit("joinRoom",
+                            { room: roomName, ques: true, uniqueKey: document.getElementById("roomName").value }
+                        )
                         console.log("Trying to Join Room ", roomName)
                         // document.getElementById("joinedRoomName").innerHTML = roomName;
                         break;
                     }
 
                     if ((Object.keys(usersByRoom).length - 1) == i && joinStatus == false && usersByRoom[roomName] != 1) {
-                        socket.emit("joinRoom", { room: document.getElementById("roomName").value, newRoom: true, uniqueKey: document.getElementById("roomName").value })
+                        socket.emit("joinRoom",
+                            {
+                                room: document.getElementById("roomName").value,
+                                newRoom: true,
+                                uniqueKey: document.getElementById("roomName").value
+                            })
                         console.log("Joined New Room ", document.getElementById("roomName").value)
                         // document.getElementById("joinedRoomName").innerHTML = document.getElementById("roomName").value;
                     }
@@ -137,9 +144,6 @@
             // correctAns[data.sno] = data.ans;
         });
 
-        // {
-        //     ques : "dfdf"
-        // }
 
         function submitAns(curr) {
             socket.emit("submitAns",
@@ -148,7 +152,6 @@
                     sno: (curr.id).slice(3,),
                     userAns: parseFloat(curr.parentNode.getElementsByTagName('input')[0].value),
                 }
-
             )
 
             setTimeout(() => {
@@ -157,12 +160,10 @@
                 }
                 curr.parentNode.remove();
             }, 100);
-
-
         }
 
         socket.on("userLeft", function (data) {
-            console.log(data.msg)
+            // console.log(data.msg)
             socket.emit("leaveRoom", { msg: "Leave This Room" })
             joinStatus = false;
             document.getElementById("qus").innerHTML = data.msg;
@@ -179,7 +180,6 @@
             if (data.type == "alreadyInRoom") {
                 console.log("You are already In The Room")
                 alert(data.msg)
-
             }
         })
 

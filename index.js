@@ -112,6 +112,8 @@ io.on('connection', (socket) => {
                     {
                         ques: problem.ques,
                         sno: quesNo,
+                        userJoined: false,
+
                     });
                 quesNo++;
             }
