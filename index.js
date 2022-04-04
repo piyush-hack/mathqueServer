@@ -155,7 +155,7 @@ io.on('connection', (socket) => {
         }
         if (data.ques) {
 
-            let problem = genProblem(1, 100);
+            let problem = genProblem(2, 100);
             usersByRooms[data.room]["ques"] = {}
             usersByRooms[data.room]["ques"][quesNo] = { ...problem }
             io.in(data.room).emit("getQues",
@@ -172,7 +172,7 @@ io.on('connection', (socket) => {
     socket.on("submitAns", async (data) => {
 
         // console.log(data)
-        let problem = genProblem(1, 100);
+        let problem = genProblem(2, 100);
         for (const x of socket.rooms.values()) {
             if (usersByRooms[x]) {
                 // console.log(object)
@@ -280,6 +280,9 @@ function genProblem(level, upto) {
 
     var n = level;
     var probStatment = buildTree(n).toString()
+    if(level == 2){
+        probStatment = probStatment.slice(1, -1)
+    }
     var problem;
 
     problem = { ques: probStatment + " =", ans: Math.round(evaluate(probStatment) * 100) / 100 };
