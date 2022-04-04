@@ -26,9 +26,9 @@ app.use(express.json())
 // var db = admin.database();
 
 
-// app.get('/', (req, res) => {
-//     res.sendFile(__dirname + '/index.html');
-// });
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
 
 // app.get('/add', (req, res) => {
 //     addUser({ table: "users", name: "piyush" }, res);
