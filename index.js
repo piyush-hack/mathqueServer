@@ -13,13 +13,95 @@ app.use(cors())
 app.use(express.json())
 
 
-// app.get('/', (req, res) => {
-//     res.send({ msg: 'Welcome' })
-// })
+// var admin = require("firebase-admin");
 
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/index.html');
-});
+// var serviceAccount = require('./admin.json');
+
+// admin.initializeApp({
+//     credential: admin.credential.cert(serviceAccount),
+//     databaseURL: "https://learnfdb-default-rtdb.firebaseio.com/",
+//     authDomain: "learnfdb-default-rtdb.firebaseapp.com",
+// });
+
+// var db = admin.database();
+
+
+// app.get('/', (req, res) => {
+//     res.sendFile(__dirname + '/index.html');
+// });
+
+// app.get('/add', (req, res) => {
+//     addUser({ table: "users", name: "piyush" }, res);
+// });
+
+// app.get('/addId', (req, res) => {
+//     demoUser({ table: "users", name: "ayush" }, res);
+// });
+
+// app.get('/getAll', (req, res) => {
+//     getUsers({ table: "users" }, res);
+// });
+
+// app.get('/getOne', (req, res) => {
+//     getOneUser({ table: "users" , id : "-MzUDC9CJIw95i_kSfY4" }, res);
+// });
+
+// app.get('/delete', (req, res) => {
+//     deleteUser({ ref: "/users/-MzUDC9CJIw95i_kSfY4" }, res);
+// });
+
+
+// function demoUser(obj, res) {
+//     // const db = firebase.firestore();
+//     var userRefdemo = db.ref();
+//     var oneUser = userRefdemo.child(obj.table);
+//     oneUser.push(obj, (err) => {
+//         if (err) {
+//             res.status(300).json({ "msg": "Something went wrong", "error": err });
+//         }
+//         else {
+//             res.status(200).json({ "msg": "user created sucessfully" });
+//         }
+//     })
+// }
+
+// function getUsers(obj, res) {
+//     var userRef = db.ref();
+//     var oneUser = userRef.child(obj.table);
+//     userRef.once('value', function (snap) {
+//         res.status(200).json({ "users": snap.val() });
+//     })
+// }
+
+// function addUser(obj, res) {
+//     var userRef = db.ref();
+//     var oneUser = userRef.child(obj.table);
+//     oneUser.update(obj, (err) => {
+//         if (err) {
+//             res.status(300).json({ "msg": "Something went wrong", "error": err });
+//         }
+//         else {
+//             res.status(200).json({ "msg": "user created sucessfully" });
+//         }
+//     })
+// }
+
+// function deleteUser(obj , res){
+//     let userRef = db.ref(obj.ref);
+//     userRef.remove();
+//     res.status(200).json({ "msg": "delete Success" });
+
+// }
+
+// function getOneUser(obj, res){
+//     var userRefdemo = db.ref(obj.table);
+//     var oneUser = userRefdemo.child(obj.id);
+//     oneUser.once('value', function (snap) {
+//         res.status(200).json({ "user": snap.val() });
+//     })
+// }
+
+
 
 let usersByRooms = { "start": { "users": 0 } }
 let usersRooms = { "start": 0 }
@@ -73,7 +155,7 @@ io.on('connection', (socket) => {
         }
         if (data.ques) {
 
-            let problem = genProblem(3, 10);
+            let problem = genProblem(1, 100);
             usersByRooms[data.room]["ques"] = {}
             usersByRooms[data.room]["ques"][quesNo] = { ...problem }
             io.in(data.room).emit("getQues",
@@ -90,7 +172,7 @@ io.on('connection', (socket) => {
     socket.on("submitAns", async (data) => {
 
         // console.log(data)
-        let problem = genProblem(3, 10);
+        let problem = genProblem(1, 100);
         for (const x of socket.rooms.values()) {
             if (usersByRooms[x]) {
                 // console.log(object)
@@ -179,7 +261,8 @@ function genProblem(level, upto) {
         return Math.floor(Math.random() * (max - min) + min);
     }
 
-    var x = ['/', '*', '-', '+'];
+    // var x = ['/', '*', '-', '+'];
+    var x = ['+'];
 
     function buildTree(numNodes) {
         if (numNodes === 1)
@@ -199,7 +282,7 @@ function genProblem(level, upto) {
     var probStatment = buildTree(n).toString()
     var problem;
 
-    problem = { ques: "How much is " + probStatment + " ?", ans: Math.round(evaluate(probStatment) * 100) / 100 };
+    problem = { ques: probStatment + " =", ans: Math.round(evaluate(probStatment) * 100) / 100 };
     return problem;
 }
 
